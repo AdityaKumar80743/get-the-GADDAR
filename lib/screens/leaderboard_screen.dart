@@ -157,13 +157,30 @@ class LeaderboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              if (me?.isHost == true)
+              if (me?.isHost == true) ...[
                 CartoonButton(
                   label: 'PLAY ANOTHER MATCH (BACK TO LOBBY)',
                   icon: Icons.replay_rounded,
                   color: GaddarColors.emerald,
                   onPressed: service.returnRoomToLobby,
                 ),
+                const SizedBox(height: 12),
+              ],
+              CartoonButton(
+                label: 'LEAVE TO MAIN MENU',
+                icon: Icons.home_rounded,
+                color: GaddarColors.crimson,
+                textColor: Colors.white,
+                onPressed: () async {
+                  final shouldLeave = await GaddarDialogs.showLeaveMatchDialog(
+                    context,
+                    roomCode: room.roomCode,
+                  );
+                  if (shouldLeave && context.mounted) {
+                    await service.leaveRoom();
+                  }
+                },
+              ),
             ],
           ),
         ),

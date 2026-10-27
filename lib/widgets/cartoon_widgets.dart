@@ -228,3 +228,139 @@ class ReadyBarrierBanner extends StatelessWidget {
     );
   }
 }
+
+class GaddarDialogs {
+  static Future<bool> showExitAppDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: GaddarColors.bgCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: GaddarColors.ink, width: 3.5),
+        ),
+        title: Text(
+          '🚪 EXIT GAME?',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.fredoka(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: GaddarColors.gold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to close Get the GADDAR?',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            color: Colors.white70,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: CartoonButton(
+                  label: 'STAY',
+                  color: Colors.white24,
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CartoonButton(
+                  label: 'EXIT',
+                  color: GaddarColors.crimson,
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  static Future<bool> showLeaveMatchDialog(
+    BuildContext context, {
+    String? roomCode,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: GaddarColors.bgCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: GaddarColors.ink, width: 3.5),
+        ),
+        title: Text(
+          '⚠️ LEAVE MATCH?',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.fredoka(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: GaddarColors.crimson,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              roomCode != null && roomCode.isNotEmpty
+                  ? 'You are in Room #$roomCode'
+                  : 'You are currently in an active game',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: GaddarColors.gold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Leaving will remove you from this session and your friends will continue without you!',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: CartoonButton(
+                  label: 'KEEP PLAYING',
+                  color: GaddarColors.emerald,
+                  textColor: GaddarColors.ink,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CartoonButton(
+                  label: 'LEAVE ROOM',
+                  color: GaddarColors.crimson,
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+}

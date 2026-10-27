@@ -135,6 +135,7 @@ class SupabaseGameService extends ChangeNotifier {
 
       _currentPlayerId = hostPlayerUuid;
       _currentRoom = GameRoom.fromMap(roomInsert);
+      await _saveSession(roomId, roomCode);
       _subscribeToRoomStreams(roomId);
       _isLoading = false;
       notifyListeners();
@@ -196,6 +197,7 @@ class SupabaseGameService extends ChangeNotifier {
         if (existingPlayer != null) {
           _currentPlayerId = existingPlayer['id'] as String;
           _currentRoom = room;
+          await _saveSession(room.id, room.roomCode);
           _subscribeToRoomStreams(room.id);
           _isLoading = false;
           notifyListeners();
@@ -224,6 +226,7 @@ class SupabaseGameService extends ChangeNotifier {
 
       _currentPlayerId = upsertedPlayer['id'] as String;
       _currentRoom = room;
+      await _saveSession(room.id, room.roomCode);
       _subscribeToRoomStreams(room.id);
       _isLoading = false;
       notifyListeners();
@@ -246,8 +249,21 @@ class SupabaseGameService extends ChangeNotifier {
         .listen((rows) {
           if (rows.isNotEmpty) {
             final prevRound = _currentRoom?.currentRound;
+            final prevStatus = _currentRoom?.status;
             _currentRoom = GameRoom.fromMap(rows.first);
-            if (prevRound != _currentRoom!.currentRound) {
+
+            // Phase cleanup: wipe old votes whenever room is not in voting phase
+            if (_currentRoom!.status != RoomStatus.voting) {
+              _currentRoundVotes = {};
+            }
+
+            final isEnteringVoting = _currentRoom!.status == RoomStatus.voting &&
+                prevStatus != RoomStatus.voting;
+            final isRoundChangedInVoting =
+                _currentRoom!.status == RoomStatus.voting &&
+                    prevRound != _currentRoom!.currentRound;
+
+            if (isEnteringVoting || isRoundChangedInVoting) {
               _subscribeToVotesForRound(roomId, _currentRoom!.currentRound);
             }
             notifyListeners();
@@ -279,6 +295,7 @@ class SupabaseGameService extends ChangeNotifier {
 
   void _subscribeToVotesForRound(String roomId, int roundNumber) {
     _votesSub?.cancel();
+    _currentRoundVotes = {};
     _votesSub = _supabase
         .from('votes')
         .stream(primaryKey: ['id'])
@@ -371,6 +388,7 @@ class SupabaseGameService extends ChangeNotifier {
     final gaddarCount = min(room.impostorCount, max(1, _players.length - 2));
     final gaddarIds = shuffledIds.take(gaddarCount).toList();
 
+    _currentRoundVotes = {};
     await _supabase.rpc('start_match', params: {
       'p_room_id': room.id,
       'p_secret_word': chosen.word,
@@ -422,6 +440,7 @@ class SupabaseGameService extends ChangeNotifier {
     final room = _currentRoom;
     if (room == null || myPlayer?.isHost != true) return;
 
+    _currentRoundVotes = {};
     await _supabase.from('votes').delete().eq('room_id', room.id);
     await _supabase.from('players').update({
       'is_eliminated': false,
@@ -444,6 +463,7 @@ class SupabaseGameService extends ChangeNotifier {
     final room = _currentRoom;
     final me = myPlayer;
     _cancelSubscriptions();
+    await _clearSession();
     if (room != null && me != null) {
       try {
         await _supabase.from('players').delete().eq('id', me.id);
@@ -455,6 +475,98 @@ class SupabaseGameService extends ChangeNotifier {
     _customWords = [];
     _currentRoundVotes = {};
     notifyListeners();
+  }
+
+  Future<void> _saveSession(String roomId, String roomCode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('gaddar_active_room_id', roomId);
+      await prefs.setString('gaddar_active_room_code', roomCode);
+    } catch (_) {}
+  }
+
+  Future<void> _clearSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('gaddar_active_room_id');
+      await prefs.remove('gaddar_active_room_code');
+    } catch (_) {}
+  }
+
+  Future<bool> restoreActiveSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedRoomId = prefs.getString('gaddar_active_room_id');
+      if (savedRoomId == null || savedRoomId.isEmpty) return false;
+      if (_deviceId.isEmpty) await initDeviceIdentity();
+
+      final roomRow = await _supabase
+          .from('rooms')
+          .select()
+          .eq('id', savedRoomId)
+          .maybeSingle();
+
+      if (roomRow == null) {
+        await _clearSession();
+        return false;
+      }
+
+      final room = GameRoom.fromMap(roomRow);
+      final playerRow = await _supabase
+          .from('players')
+          .select()
+          .eq('room_id', room.id)
+          .eq('device_id', _deviceId)
+          .maybeSingle();
+
+      if (playerRow == null) {
+        await _clearSession();
+        return false;
+      }
+
+      _currentPlayerId = playerRow['id'] as String;
+      _currentRoom = room;
+      _subscribeToRoomStreams(room.id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Failed to restore active session: $e');
+      return false;
+    }
+  }
+
+  Future<void> refreshRoomOnResume() async {
+    final room = _currentRoom;
+    if (room == null) return;
+    try {
+      final roomRow = await _supabase
+          .from('rooms')
+          .select()
+          .eq('id', room.id)
+          .maybeSingle();
+
+      if (roomRow != null) {
+        final updatedRoom = GameRoom.fromMap(roomRow);
+        final playersRows = await _supabase
+            .from('players')
+            .select()
+            .eq('room_id', room.id)
+            .order('joined_at', ascending: true);
+
+        _currentRoom = updatedRoom;
+        _players = playersRows.map(Player.fromMap).toList();
+
+        if (updatedRoom.status == RoomStatus.voting) {
+          _subscribeToVotesForRound(room.id, updatedRoom.currentRound);
+        } else {
+          _currentRoundVotes = {};
+        }
+
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Refresh on resume error: $e');
+    }
   }
 
   void _cancelSubscriptions() {

@@ -35,6 +35,7 @@ Future<void> main() async {
 
   final gameService = SupabaseGameService();
   await gameService.initDeviceIdentity();
+  await gameService.restoreActiveSession();
 
   runApp(
     ChangeNotifierProvider.value(
@@ -44,8 +45,34 @@ Future<void> main() async {
   );
 }
 
-class GetTheGaddarApp extends StatelessWidget {
+class GetTheGaddarApp extends StatefulWidget {
   const GetTheGaddarApp({super.key});
+
+  @override
+  State<GetTheGaddarApp> createState() => _GetTheGaddarAppState();
+}
+
+class _GetTheGaddarAppState extends State<GetTheGaddarApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final service = context.read<SupabaseGameService>();
+      service.refreshRoomOnResume();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,24 +102,57 @@ class RealtimePhaseRouter extends StatelessWidget {
     final room = service.currentRoom;
 
     if (room == null) {
-      return const HomeScreen();
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final shouldExit = await GaddarDialogs.showExitAppDialog(context);
+          if (shouldExit) {
+            SystemNavigator.pop();
+          }
+        },
+        child: const HomeScreen(),
+      );
     }
 
+    Widget activeScreen;
     switch (room.status) {
       case RoomStatus.lobby:
-        return const LobbyScreen();
+        activeScreen = const LobbyScreen();
+        break;
       case RoomStatus.roleReveal:
-        return const RoleRevealScreen();
+        activeScreen = const RoleRevealScreen();
+        break;
       case RoomStatus.discussion:
-        return const DiscussionScreen();
+        activeScreen = const DiscussionScreen();
+        break;
       case RoomStatus.voting:
-        return const VotingScreen();
+        activeScreen = const VotingScreen();
+        break;
       case RoomStatus.lastChance:
-        return const LastChanceScreen();
+        activeScreen = const LastChanceScreen();
+        break;
       case RoomStatus.roundResult:
-        return const RoundResultScreen();
+        activeScreen = const RoundResultScreen();
+        break;
       case RoomStatus.gameOver:
-        return const LeaderboardScreen();
+        activeScreen = const LeaderboardScreen();
+        break;
     }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await GaddarDialogs.showLeaveMatchDialog(
+          context,
+          roomCode: room.roomCode,
+        );
+        if (shouldLeave && context.mounted) {
+          await service.leaveRoom();
+        }
+      },
+      child: activeScreen,
+    );
   }
 }

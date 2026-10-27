@@ -65,7 +65,15 @@ class _LobbyScreenState extends State<LobbyScreen> {
                           ),
                         ),
                         TextButton.icon(
-                          onPressed: service.leaveRoom,
+                          onPressed: () async {
+                            final shouldLeave = await GaddarDialogs.showLeaveMatchDialog(
+                              context,
+                              roomCode: room.roomCode,
+                            );
+                            if (shouldLeave && context.mounted) {
+                              await service.leaveRoom();
+                            }
+                          },
                           icon: const Icon(Icons.exit_to_app, color: Colors.white70, size: 18),
                           label: const Text('Leave', style: TextStyle(color: Colors.white70)),
                         ),
