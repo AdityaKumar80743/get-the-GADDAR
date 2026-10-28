@@ -73,20 +73,26 @@ class _DiscussionScreenState extends State<DiscussionScreen> {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: GaddarColors.crimson,
-                      borderRadius: BorderRadius.circular(99),
-                      border: Border.all(color: GaddarColors.ink, width: 2.5),
-                    ),
-                    child: Text(
-                      '⏱️ ${_remainingSeconds}s LEFT',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                  Row(
+                    children: [
+                      const HostControlsHeaderButton(),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: GaddarColors.crimson,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(color: GaddarColors.ink, width: 2.5),
+                        ),
+                        child: Text(
+                          '⏱️ ${_remainingSeconds}s LEFT',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

@@ -32,15 +32,22 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                "PRIVATE ROLE REVEAL • ${me.nickname.toUpperCase()}'S PHONE",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: GaddarColors.gold,
-                  letterSpacing: 1.2,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      "ROLE REVEAL • ${me.nickname.toUpperCase()}'S PHONE",
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: GaddarColors.gold,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ),
+                  const HostControlsHeaderButton(),
+                ],
               ),
               const SizedBox(height: 6),
               Text(

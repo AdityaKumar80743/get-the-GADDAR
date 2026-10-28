@@ -287,4 +287,94 @@ begin
 end;
 $$;
 
+-- ============================================================================
+-- 7. HOST KICK PLAYER RPC (WITH GADDAR SAFEGUARD & AUTO-RESOLVE)
+-- ============================================================================
+create or replace function public.kick_player(
+  p_room_id uuid,
+  p_player_id uuid,
+  p_host_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_is_host boolean;
+  v_kicked_role text;
+  v_kicked_name text;
+  v_room record;
+  v_remaining_gaddars int;
+  v_remaining_count int;
+  v_active_count int;
+  v_votes_cast int;
+begin
+  -- 1. Verify caller is host
+  select is_host into v_is_host
+  from public.players
+  where id = p_host_id and room_id = p_room_id;
+
+  if v_is_host is not true then
+    return jsonb_build_object('success', false, 'error', 'Only the room host can kick players.');
+  end if;
+
+  -- Cannot kick oneself as host
+  if p_player_id = p_host_id then
+    return jsonb_build_object('success', false, 'error', 'Host cannot kick themselves.');
+  end if;
+
+  select role, nickname into v_kicked_role, v_kicked_name
+  from public.players
+  where id = p_player_id and room_id = p_room_id;
+
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Player not found in room.');
+  end if;
+
+  -- 2. Delete player & their votes
+  delete from public.players where id = p_player_id and room_id = p_room_id;
+  delete from public.votes where voter_id = p_player_id and room_id = p_room_id;
+
+  select * into v_room from public.rooms where id = p_room_id for update;
+
+  -- 3. If in active match, check if kicked player was the Gaddar!
+  if v_room.status <> 'lobby' and v_room.status <> 'game_over' then
+    select count(*) into v_remaining_gaddars
+    from public.players
+    where room_id = p_room_id and role = 'gaddar' and is_eliminated = false;
+
+    -- If no Gaddars remain, Friends win automatically!
+    if v_remaining_gaddars = 0 then
+      update public.rooms
+      set status = 'game_over',
+          winner_team = 'friends',
+          win_reason = coalesce(v_kicked_name, 'The Gaddar') || ' was removed from the match. All Gaddars are gone — Friends Win!',
+          phase_started_at = now()
+      where id = p_room_id;
+
+      return jsonb_build_object('success', true, 'action', 'gaddar_kicked_game_over');
+    end if;
+
+    -- If in voting phase, check if all remaining active players have voted
+    if v_room.status = 'voting' then
+      select count(*) into v_active_count
+      from public.players
+      where room_id = p_room_id and is_eliminated = false;
+
+      select count(*) into v_votes_cast
+      from public.votes
+      where room_id = p_room_id and round_number = v_room.current_round;
+
+      if v_votes_cast >= v_active_count and v_active_count > 0 then
+        perform public.resolve_round_votes(p_room_id, v_room.current_round);
+      end if;
+    end if;
+  end if;
+
+  select count(*) into v_remaining_count from public.players where room_id = p_room_id;
+  return jsonb_build_object('success', true, 'action', 'player_kicked', 'kicked_name', v_kicked_name, 'remaining', v_remaining_count);
+end;
+$$;
+
+
 

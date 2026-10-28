@@ -20,6 +20,7 @@ class SupabaseGameService extends ChangeNotifier {
   Map<String, String> _currentRoundVotes = {};
   bool _isLoading = false;
   String? _errorMessage;
+  String? _savedRoomCode;
 
   StreamSubscription<List<Map<String, dynamic>>>? _roomSub;
   StreamSubscription<List<Map<String, dynamic>>>? _playersSub;
@@ -34,6 +35,7 @@ class SupabaseGameService extends ChangeNotifier {
   List<WordPair> get remoteWords => _remoteWords;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  String? get savedRoomCode => _savedRoomCode;
 
   Player? get myPlayer {
     if (_currentPlayerId == null) return null;
@@ -70,6 +72,7 @@ class SupabaseGameService extends ChangeNotifier {
       await prefs.setString('gaddar_device_uuid', savedId);
     }
     _deviceId = savedId;
+    _savedRoomCode = prefs.getString('gaddar_active_room_code');
     notifyListeners();
     unawaited(loadGlobalWords());
   }
@@ -237,10 +240,28 @@ class SupabaseGameService extends ChangeNotifier {
           return true;
         }
 
+        // Mid-match join: allow rejoining/joining as Spectator without breaking barriers!
+        final spectatorPlayer = await _supabase
+            .from('players')
+            .insert({
+              'room_id': room.id,
+              'device_id': _deviceId,
+              'nickname': nickname.trim(),
+              'avatar_index': avatarIndex,
+              'is_host': false,
+              'role': 'friend',
+              'is_eliminated': true,
+            })
+            .select()
+            .single();
+
+        _currentPlayerId = spectatorPlayer['id'] as String;
+        _currentRoom = room;
+        await _saveSession(room.id, room.roomCode);
+        _subscribeToRoomStreams(room.id);
         _isLoading = false;
-        _errorMessage = 'Room #$cleanCode is already in the middle of a match!';
         notifyListeners();
-        return false;
+        return true;
       }
 
       final upsertedPlayer = await _supabase
@@ -603,11 +624,57 @@ class SupabaseGameService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<bool> kickPlayer(String targetPlayerId) async {
+    final room = _currentRoom;
+    final me = myPlayer;
+    if (room == null || me == null || !me.isHost || targetPlayerId == me.id) {
+      return false;
+    }
+
+    try {
+      await _supabase.rpc('kick_player', params: {
+        'p_room_id': room.id,
+        'p_player_id': targetPlayerId,
+        'p_host_id': me.id,
+      });
+      return true;
+    } catch (_) {
+      // Client-side fallback if RPC not yet run in database
+      try {
+        final kickedList = _players.where((p) => p.id == targetPlayerId).toList();
+        final kicked = kickedList.isNotEmpty ? kickedList.first : null;
+        await _supabase.from('votes').delete().eq('room_id', room.id).eq('voter_id', targetPlayerId);
+        await _supabase.from('players').delete().eq('id', targetPlayerId);
+
+        if (room.status != RoomStatus.lobby && room.status != RoomStatus.gameOver && kicked != null) {
+          final remaining = _players.where((p) => p.id != targetPlayerId).toList();
+          final remainingGaddars = remaining.where((p) => p.isGaddar && !p.isEliminated).length;
+          if (remainingGaddars == 0) {
+            await _supabase.from('rooms').update({
+              'status': 'game_over',
+              'winner_team': 'friends',
+              'win_reason': '${kicked.nickname} was removed. Friends Win!',
+            }).eq('id', room.id);
+          } else if (room.status == RoomStatus.voting) {
+            await forceResolveVoting();
+          }
+        }
+        return true;
+      } catch (e) {
+        _errorMessage = 'Could not kick player: $e';
+        notifyListeners();
+        return false;
+      }
+    }
+  }
+
   Future<void> _saveSession(String roomId, String roomCode) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('gaddar_active_room_id', roomId);
       await prefs.setString('gaddar_active_room_code', roomCode);
+      _savedRoomCode = roomCode;
+      notifyListeners();
     } catch (_) {}
   }
 
@@ -616,6 +683,8 @@ class SupabaseGameService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('gaddar_active_room_id');
       await prefs.remove('gaddar_active_room_code');
+      _savedRoomCode = null;
+      notifyListeners();
     } catch (_) {}
   }
 

@@ -36,13 +36,21 @@ class _VotingScreenState extends State<VotingScreen> {
                 color: const Color(0xFF3A0F49),
                 child: Column(
                   children: [
-                    Text(
-                      '🗳️ SECRET BALLOT BOX (${me?.nickname ?? "Player"}\'S PHONE)',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: GaddarColors.gold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '🗳️ SECRET BALLOT (${me?.nickname ?? "Player"}\'S PHONE)',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: GaddarColors.gold,
+                            ),
+                          ),
+                        ),
+                        const HostControlsHeaderButton(),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     const Text(

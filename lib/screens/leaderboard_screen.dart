@@ -30,7 +30,7 @@ class LeaderboardScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      friendsWon ? '🎉 FRIENDS WIN THE MATCH!' : '🕵️ GADDAR WINS THE MATCH!',
+                      friendsWon ? '🛡️ LOYAL FRIENDS WIN!' : '🕵️ GADDAR WINS THE MATCH!',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.fredoka(
                         fontSize: 26,
@@ -39,10 +39,17 @@ class LeaderboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      room.winReason ?? '',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        room.winReason ?? (friendsWon ? 'Friends caught the Gaddar!' : 'The Gaddar fooled everyone!'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                      ),
                     ),
                     if (room.secretImageUrl != null && room.secretImageUrl!.isNotEmpty) ...[
                       const SizedBox(height: 10),
@@ -70,9 +77,10 @@ class LeaderboardScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: GaddarColors.bgDeep,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: GaddarColors.cyan.withValues(alpha: 0.3)),
                       ),
                       child: Text(
-                        'Secret Word: "${room.secretWord}" • Hint: "${room.secretHint}"',
+                        'Secret Word: "${room.secretWord ?? ""}" • Hint: "${room.secretHint ?? ""}"',
                         style: GoogleFonts.spaceGrotesk(
                           color: GaddarColors.cyan,
                           fontWeight: FontWeight.w700,
@@ -89,22 +97,41 @@ class LeaderboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '🏆 UNLOCKED FINAL LEADERBOARD & ROLE REVEAL',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: GaddarColors.gold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '🏆 FINAL SCORES & TRUE ROLES',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: GaddarColors.gold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: GaddarColors.bgDeep,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            'Ranked by Score',
+                            style: GoogleFonts.spaceGrotesk(fontSize: 11, color: Colors.white70),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Includes +50 secret bonus points for every round a player voted for the real Gaddar!',
-                      style: TextStyle(color: Colors.white60, fontSize: 12),
+                      'Secret bonus: +50 pts for voting Gaddar, +100 pts for winning team, +150 for Gaddar Last-Chance.',
+                      style: TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                     const SizedBox(height: 12),
                     ...List.generate(sortedPlayers.length, (i) {
                       final p = sortedPlayers[i];
+                      final isWinner = (p.isGaddar && !friendsWon) || (!p.isGaddar && friendsWon);
+                      final isScoreMvp = i == 0;
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(12),
@@ -112,8 +139,10 @@ class LeaderboardScreen extends StatelessWidget {
                           color: GaddarColors.bgDeep,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: p.isGaddar ? GaddarColors.crimson : GaddarColors.emerald,
-                            width: 2.5,
+                            color: isWinner
+                                ? GaddarColors.gold
+                                : (p.isGaddar ? GaddarColors.crimson : GaddarColors.emerald),
+                            width: isWinner ? 3 : 2,
                           ),
                         ),
                         child: Row(
@@ -123,7 +152,7 @@ class LeaderboardScreen extends StatelessWidget {
                               style: GoogleFonts.fredoka(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: GaddarColors.gold,
+                                color: isScoreMvp ? GaddarColors.gold : Colors.white70,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -137,18 +166,45 @@ class LeaderboardScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${p.nickname}${p.id == me?.id ? " (You)" : ""}',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          '${p.nickname}${p.id == me?.id ? " (You)" : ""}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isWinner) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: GaddarColors.gold,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            '🏆 WINNER',
+                                            style: GoogleFonts.spaceGrotesk(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w800,
+                                              color: GaddarColors.ink,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
                                     p.isGaddar
-                                        ? '🕵️ GADDAR • Survived ${p.roundsSurvivedAsGaddar} round(s)'
-                                        : '🛡️ FRIEND • Voted Gaddar ${p.correctGaddarVotes}x (+${p.correctGaddarVotes * 50} pts)',
+                                        ? '🕵️ THE GADDAR • Survived ${p.roundsSurvivedAsGaddar} round(s)'
+                                        : '🛡️ LOYAL FRIEND • Voted Gaddar ${p.correctGaddarVotes}x (+${p.correctGaddarVotes * 50} pts)',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: p.isGaddar
@@ -160,13 +216,27 @@ class LeaderboardScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            Text(
-                              '${p.secretScore} PTS',
-                              style: GoogleFonts.spaceGrotesk(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: GaddarColors.gold,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${p.secretScore} PTS',
+                                  style: GoogleFonts.spaceGrotesk(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: GaddarColors.gold,
+                                  ),
+                                ),
+                                if (isScoreMvp)
+                                  Text(
+                                    '👑 SCORE MVP',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: GaddarColors.cyan,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),

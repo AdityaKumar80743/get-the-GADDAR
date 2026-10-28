@@ -64,18 +64,24 @@ class _LobbyScreenState extends State<LobbyScreen> {
                             color: GaddarColors.cyan,
                           ),
                         ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            final shouldLeave = await GaddarDialogs.showLeaveMatchDialog(
-                              context,
-                              roomCode: room.roomCode,
-                            );
-                            if (shouldLeave && context.mounted) {
-                              await service.leaveRoom();
-                            }
-                          },
-                          icon: const Icon(Icons.exit_to_app, color: Colors.white70, size: 18),
-                          label: const Text('Leave', style: TextStyle(color: Colors.white70)),
+                        Row(
+                          children: [
+                            const HostControlsHeaderButton(),
+                            const SizedBox(width: 6),
+                            TextButton.icon(
+                              onPressed: () async {
+                                final shouldLeave = await GaddarDialogs.showLeaveMatchDialog(
+                                  context,
+                                  roomCode: room.roomCode,
+                                );
+                                if (shouldLeave && context.mounted) {
+                                  await service.leaveRoom();
+                                }
+                              },
+                              icon: const Icon(Icons.exit_to_app, color: Colors.white70, size: 18),
+                              label: const Text('Leave', style: TextStyle(color: Colors.white70)),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -25,6 +25,11 @@ class RoundResultScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: HostControlsHeaderButton(),
+              ),
+              const SizedBox(height: 8),
               CartoonCard(
                 color: const Color(0xFF34146E),
                 child: Column(

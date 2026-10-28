@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../models/game_models.dart';
+import '../services/supabase_game_service.dart';
 
 class GaddarColors {
   static const Color bgDeep = Color(0xFF1A0938);
@@ -406,5 +408,344 @@ class GaddarDialogs {
       ),
     );
     return result ?? false;
+  }
+
+  static Future<bool> showKickPlayerDialog(
+    BuildContext context, {
+    required String nickname,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: GaddarColors.bgCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: GaddarColors.crimson, width: 3),
+        ),
+        title: Text(
+          '👢 KICK PLAYER?',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.fredoka(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: GaddarColors.crimson,
+          ),
+        ),
+        content: Text(
+          'Remove "$nickname" from the match? If they were the Gaddar, Friends will automatically win.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            color: Colors.white70,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: CartoonButton(
+                  label: 'CANCEL',
+                  color: Colors.white24,
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CartoonButton(
+                  label: 'KICK',
+                  color: GaddarColors.crimson,
+                  textColor: Colors.white,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+}
+
+class HostControlsHeaderButton extends StatelessWidget {
+  const HostControlsHeaderButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.watch<SupabaseGameService>();
+    final me = service.myPlayer;
+    if (me?.isHost != true) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () => HostControlsSheet.show(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: GaddarColors.gold,
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: GaddarColors.ink, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: GaddarColors.ink,
+              offset: Offset(0, 3),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('👑', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 4),
+            Text(
+              'HOST',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: GaddarColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HostControlsSheet extends StatelessWidget {
+  const HostControlsSheet({super.key});
+
+  static void show(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: GaddarColors.bgDeep,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        side: BorderSide(color: GaddarColors.gold, width: 3),
+      ),
+      builder: (_) => const HostControlsSheet(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final service = context.watch<SupabaseGameService>();
+    final room = service.currentRoom;
+    final me = service.myPlayer;
+    final players = service.players;
+
+    if (room == null || me?.isHost != true) {
+      return const SizedBox.shrink();
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('👑', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'HOST CONTROLS',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: GaddarColors.gold,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            CartoonCard(
+              color: const Color(0xFF34146E),
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    '⚡ QUICK PHASE OVERRIDES',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: GaddarColors.cyan,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (room.status == RoomStatus.roleReveal)
+                    CartoonButton(
+                      label: 'Advance to Discussion',
+                      icon: Icons.fast_forward_rounded,
+                      color: GaddarColors.gold,
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await service.forceAdvancePhase(RoomStatus.discussion);
+                      },
+                    ),
+                  if (room.status == RoomStatus.discussion)
+                    CartoonButton(
+                      label: 'Advance to Voting',
+                      icon: Icons.how_to_vote_rounded,
+                      color: GaddarColors.cyan,
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await service.forceAdvancePhase(RoomStatus.voting);
+                      },
+                    ),
+                  if (room.status == RoomStatus.voting)
+                    CartoonButton(
+                      label: 'Force Resolve Votes Now',
+                      icon: Icons.flash_on_rounded,
+                      color: GaddarColors.crimson,
+                      textColor: Colors.white,
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await service.forceResolveVoting();
+                      },
+                    ),
+                  if (room.status == RoomStatus.roundResult)
+                    CartoonButton(
+                      label: 'Start Next Round',
+                      icon: Icons.play_arrow_rounded,
+                      color: GaddarColors.emerald,
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await service.forceAdvancePhase(RoomStatus.discussion);
+                      },
+                    ),
+                  if (room.status == RoomStatus.lastChance)
+                    CartoonButton(
+                      label: "Time's Up — Skip Guess",
+                      icon: Icons.timer_off_rounded,
+                      color: GaddarColors.crimson,
+                      textColor: Colors.white,
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await service.submitLastChanceGuess('(Time Expired)');
+                      },
+                    ),
+                  if (room.status == RoomStatus.lobby)
+                    Text(
+                      'Match has not started yet. Need 3+ players.',
+                      style: GoogleFonts.plusJakartaSans(color: Colors.white54, fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Text(
+              'CONNECTED PLAYERS (${players.length}) • KICK AFK / DISCONNECTED',
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: players.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                itemBuilder: (ctx, i) {
+                  final p = players[i];
+                  final isMe = p.id == me?.id;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: GaddarColors.bgCard,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: p.isHost ? GaddarColors.gold : GaddarColors.ink,
+                        width: 2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          GaddarColors.avatarEmojis[p.avatarIndex % GaddarColors.avatarEmojis.length],
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${p.nickname}${isMe ? " (You)" : ""}',
+                                style: GoogleFonts.fredoka(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                p.isHost
+                                    ? '👑 Room Host'
+                                    : (p.isEliminated ? '👻 Eliminated' : 'Active Player'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: p.isHost ? GaddarColors.gold : Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isMe)
+                          IconButton(
+                            icon: const Icon(Icons.person_remove_rounded, color: GaddarColors.crimson, size: 20),
+                            tooltip: 'Kick player',
+                            onPressed: () async {
+                              final shouldKick = await GaddarDialogs.showKickPlayerDialog(
+                                context,
+                                nickname: p.nickname,
+                              );
+                              if (shouldKick) {
+                                await service.kickPlayer(p.id);
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

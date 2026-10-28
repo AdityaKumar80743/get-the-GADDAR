@@ -228,6 +228,46 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 18),
 
+              if (service.savedRoomCode != null && service.savedRoomCode!.isNotEmpty) ...[
+                CartoonCard(
+                  color: const Color(0xFF0F3D35),
+                  borderColor: GaddarColors.emerald,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.sync_rounded, color: GaddarColors.emerald),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'ACTIVE SESSION DETECTED: #${service.savedRoomCode}',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: GaddarColors.emerald,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      CartoonButton(
+                        label: 'RECONNECT TO ROOM #${service.savedRoomCode}',
+                        icon: Icons.login_rounded,
+                        color: GaddarColors.emerald,
+                        onPressed: service.isLoading
+                            ? null
+                            : () {
+                                _roomCodeCtrl.text = service.savedRoomCode!;
+                                _handleJoinRoom();
+                              },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
+
               CartoonCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
