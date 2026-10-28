@@ -35,6 +35,9 @@ create policy "Allow public delete on global_words" on public.global_words for d
 -- ============================================================================
 -- 3. UPDATE START_MATCH RPC TO SUPPORT OPTIONAL SECRET IMAGE URL
 -- ============================================================================
+-- Drop legacy 5-parameter version so PostgREST resolves the function unambiguously
+drop function if exists public.start_match(uuid, text, text, text, uuid[]);
+
 create or replace function public.start_match(
   p_room_id uuid,
   p_secret_word text,

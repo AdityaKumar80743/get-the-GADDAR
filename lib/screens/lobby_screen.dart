@@ -217,14 +217,46 @@ class _LobbyScreenState extends State<LobbyScreen> {
               ),
               const SizedBox(height: 20),
 
+              if (service.errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: GaddarColors.crimson.withValues(alpha: 0.2),
+                    border: Border.all(color: GaddarColors.crimson, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: GaddarColors.crimson),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          service.errorMessage!,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                        onPressed: service.clearError,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               if (isHost)
                 CartoonButton(
-                  label: players.length < 3
-                      ? 'WAITING FOR AT LEAST 3 PLAYERS (${players.length}/3)...'
-                      : 'START MATCH FOR ALL ${players.length} PHONES',
-                  icon: Icons.play_arrow_rounded,
+                  label: service.isLoading
+                      ? 'STARTING MATCH...'
+                      : (players.length < 3
+                          ? 'WAITING FOR AT LEAST 3 PLAYERS (${players.length}/3)...'
+                          : 'START MATCH FOR ALL ${players.length} PHONES'),
+                  icon: service.isLoading ? Icons.hourglass_top : Icons.play_arrow_rounded,
                   color: GaddarColors.emerald,
-                  onPressed: players.length < 3 ? null : service.startMatch,
+                  onPressed: (players.length < 3 || service.isLoading)
+                      ? null
+                      : () => service.startMatch(),
                 )
               else
                 CartoonCard(

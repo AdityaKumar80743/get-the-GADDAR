@@ -375,63 +375,77 @@ class SupabaseGameService extends ChangeNotifier {
       return false;
     }
 
-    final pool = <WordPair>[];
-    for (final cat in room.selectedCategories) {
-      if (cat == 'Custom Words') {
-        for (final cw in _customWords) {
-          pool.add(WordPair(
-            word: cw.word,
-            hints: [cw.hint],
-            category: 'Custom Words',
-          ));
-        }
-      } else {
-        final matchingRemote = _remoteWords
-            .where((w) => w.category.trim().toLowerCase() == cat.trim().toLowerCase())
-            .toList();
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
-        if (matchingRemote.isNotEmpty) {
-          pool.addAll(matchingRemote);
-        } else {
-          final list = GaddarWordPacks.builtInPacks[cat] ?? const [];
-          for (final item in list) {
+    try {
+      final pool = <WordPair>[];
+      for (final cat in room.selectedCategories) {
+        if (cat == 'Custom Words') {
+          for (final cw in _customWords) {
             pool.add(WordPair(
-              word: item['word']!,
-              hints: [item['hint']!],
-              category: cat,
+              word: cw.word,
+              hints: [cw.hint],
+              category: 'Custom Words',
             ));
+          }
+        } else {
+          final matchingRemote = _remoteWords
+              .where((w) => w.category.trim().toLowerCase() == cat.trim().toLowerCase())
+              .toList();
+
+          if (matchingRemote.isNotEmpty) {
+            pool.addAll(matchingRemote);
+          } else {
+            final list = GaddarWordPacks.builtInPacks[cat] ?? const [];
+            for (final item in list) {
+              pool.add(WordPair(
+                word: item['word']!,
+                hints: [item['hint']!],
+                category: cat,
+              ));
+            }
           }
         }
       }
-    }
 
-    if (pool.isEmpty) {
-      for (final item in GaddarWordPacks.builtInPacks['Movies']!) {
-        pool.add(WordPair(
-          word: item['word']!,
-          hints: [item['hint']!],
-          category: 'Movies',
-        ));
+      if (pool.isEmpty) {
+        for (final item in GaddarWordPacks.builtInPacks['Movies']!) {
+          pool.add(WordPair(
+            word: item['word']!,
+            hints: [item['hint']!],
+            category: 'Movies',
+          ));
+        }
       }
+
+      final chosen = pool[_random.nextInt(pool.length)];
+      final pickedHint = chosen.pickRandomHint(_random);
+      final shuffledIds = _players.map((p) => p.id).toList()..shuffle(_random);
+      final gaddarCount = min(room.impostorCount, max(1, _players.length - 2));
+      final gaddarIds = shuffledIds.take(gaddarCount).toList();
+
+      _currentRoundVotes = {};
+      await _supabase.rpc('start_match', params: {
+        'p_room_id': room.id,
+        'p_secret_word': chosen.word,
+        'p_secret_hint': pickedHint,
+        'p_secret_category': chosen.category,
+        'p_gaddar_ids': gaddarIds,
+        'p_secret_image_url': (chosen.imageUrl != null && chosen.imageUrl!.isNotEmpty)
+            ? chosen.imageUrl
+            : null,
+      });
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Failed to start match: $e';
+      notifyListeners();
+      return false;
     }
-
-    final chosen = pool[_random.nextInt(pool.length)];
-    final pickedHint = chosen.pickRandomHint(_random);
-    final shuffledIds = _players.map((p) => p.id).toList()..shuffle(_random);
-    final gaddarCount = min(room.impostorCount, max(1, _players.length - 2));
-    final gaddarIds = shuffledIds.take(gaddarCount).toList();
-
-    _currentRoundVotes = {};
-    await _supabase.rpc('start_match', params: {
-      'p_room_id': room.id,
-      'p_secret_word': chosen.word,
-      'p_secret_hint': pickedHint,
-      'p_secret_category': chosen.category,
-      'p_gaddar_ids': gaddarIds,
-      if (chosen.imageUrl != null && chosen.imageUrl!.isNotEmpty)
-        'p_secret_image_url': chosen.imageUrl,
-    });
-    return true;
   }
 
   Future<void> markReadyForPhase(RoomStatus targetPhase) async {
