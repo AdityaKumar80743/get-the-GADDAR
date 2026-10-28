@@ -214,6 +214,7 @@ class _DiscussionScreenState extends State<DiscussionScreen> {
                 activePlayers: activePlayers,
                 myPlayer: me,
                 onPressReady: () => service.markReadyForPhase(RoomStatus.voting),
+                onForceAdvance: () => service.forceAdvancePhase(RoomStatus.voting),
               ),
             ],
           ),

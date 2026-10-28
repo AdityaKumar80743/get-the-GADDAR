@@ -116,6 +116,21 @@ class _LastChanceScreenState extends State<LastChanceScreen> {
                           fontSize: 16,
                         ),
                       ),
+                      if (me?.isHost == true) ...[
+                        const SizedBox(height: 14),
+                        TextButton.icon(
+                          onPressed: () => service.submitLastChanceGuess('(Time Expired)'),
+                          icon: const Icon(Icons.timer_off_rounded, color: GaddarColors.crimson, size: 18),
+                          label: Text(
+                            "👑 Host: Time's Up — Skip Guess",
+                            style: GoogleFonts.spaceGrotesk(
+                              color: GaddarColors.crimson,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

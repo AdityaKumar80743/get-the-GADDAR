@@ -180,3 +180,111 @@ values
   )
 on conflict do nothing;
 
+-- ============================================================================
+-- 5. HOST MIGRATION & CLEAN EXIT RPC
+-- ============================================================================
+create or replace function public.leave_room(
+  p_room_id uuid,
+  p_player_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_is_host boolean;
+  v_next_host_id uuid;
+  v_remaining_count int;
+begin
+  select is_host into v_is_host
+  from public.players
+  where id = p_player_id and room_id = p_room_id;
+
+  -- Delete leaving player & their votes
+  delete from public.players where id = p_player_id and room_id = p_room_id;
+  delete from public.votes where voter_id = p_player_id and room_id = p_room_id;
+
+  select count(*) into v_remaining_count
+  from public.players
+  where room_id = p_room_id;
+
+  if v_remaining_count = 0 then
+    delete from public.rooms where id = p_room_id;
+    return jsonb_build_object('action', 'room_deleted');
+  end if;
+
+  if v_is_host = true then
+    select id into v_next_host_id
+    from public.players
+    where room_id = p_room_id
+    order by joined_at asc
+    limit 1;
+
+    if v_next_host_id is not null then
+      update public.players set is_host = true where id = v_next_host_id;
+      update public.rooms set host_player_id = v_next_host_id where id = p_room_id;
+      return jsonb_build_object('action', 'host_migrated', 'new_host_id', v_next_host_id);
+    end if;
+  end if;
+
+  return jsonb_build_object('action', 'player_left', 'remaining', v_remaining_count);
+end;
+$$;
+
+-- ============================================================================
+-- 6. HOST OVERRIDE / FORCE ADVANCE RPCs (ANTI-DEADLOCK FOR AFK PHONES)
+-- ============================================================================
+create or replace function public.force_advance_phase(
+  p_room_id uuid,
+  p_target_status varchar
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_room record;
+begin
+  select * into v_room from public.rooms where id = p_room_id for update;
+  if not found then
+    return jsonb_build_object('success', false, 'error', 'Room not found');
+  end if;
+
+  update public.players
+  set has_ready = false,
+      has_voted_current_round = case when p_target_status = 'voting' then false else has_voted_current_round end
+  where room_id = p_room_id;
+
+  if v_room.status = 'round_result' and p_target_status = 'discussion' then
+    update public.rooms
+    set status = 'discussion',
+        current_round = current_round + 1,
+        caught_gaddar_id = null,
+        caught_gaddar_name = null,
+        phase_started_at = now()
+    where id = p_room_id;
+  else
+    update public.rooms
+    set status = p_target_status,
+        phase_started_at = now()
+    where id = p_room_id;
+  end if;
+
+  return jsonb_build_object('success', true, 'status', p_target_status);
+end;
+$$;
+
+create or replace function public.force_resolve_round_votes(
+  p_room_id uuid,
+  p_round int
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+begin
+  return public.resolve_round_votes(p_room_id, p_round);
+end;
+$$;
+
+

@@ -47,6 +47,8 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final service = context.watch<SupabaseGameService>();
+
     return Scaffold(
       backgroundColor: GaddarColors.bgDeep,
       appBar: AppBar(
@@ -63,6 +65,33 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (service.errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: GaddarColors.crimson.withValues(alpha: 0.2),
+                    border: Border.all(color: GaddarColors.crimson, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: GaddarColors.crimson),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          service.errorMessage!,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                        onPressed: service.clearError,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               CartoonCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,10 +231,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
               ),
               const SizedBox(height: 20),
               CartoonButton(
-                label: 'GENERATE 6-DIGIT ROOM CODE',
-                icon: Icons.rocket_launch_rounded,
+                label: service.isLoading ? 'CREATING ROOM...' : 'GENERATE 6-DIGIT ROOM CODE',
+                icon: service.isLoading ? Icons.hourglass_top_rounded : Icons.rocket_launch_rounded,
                 color: GaddarColors.emerald,
-                onPressed: _submitCreateRoom,
+                onPressed: service.isLoading ? null : _submitCreateRoom,
               ),
             ],
           ),

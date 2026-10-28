@@ -151,6 +151,23 @@ class SupabaseGameService extends ChangeNotifier {
 
       _currentPlayerId = hostPlayerUuid;
       _currentRoom = GameRoom.fromMap(roomInsert);
+      _players = [
+        Player(
+          id: hostPlayerUuid,
+          roomId: roomId,
+          deviceId: _deviceId,
+          nickname: nickname.trim(),
+          avatarIndex: avatarIndex,
+          isHost: true,
+          role: 'friend',
+          isEliminated: false,
+          hasReady: false,
+          hasVotedCurrentRound: false,
+          secretScore: 0,
+          correctGaddarVotes: 0,
+          roundsSurvivedAsGaddar: 0,
+        )
+      ];
       await _saveSession(roomId, roomCode);
       _subscribeToRoomStreams(roomId);
       _isLoading = false;
@@ -282,6 +299,15 @@ class SupabaseGameService extends ChangeNotifier {
             if (isEnteringVoting || isRoundChangedInVoting) {
               _subscribeToVotesForRound(roomId, _currentRoom!.currentRound);
             }
+            notifyListeners();
+          } else {
+            // Room was closed or deleted
+            _cancelSubscriptions();
+            unawaited(_clearSession());
+            _currentRoom = null;
+            _currentPlayerId = null;
+            _players = [];
+            _errorMessage = 'The match has ended or the room was closed.';
             notifyListeners();
           }
         });
@@ -495,11 +521,16 @@ class SupabaseGameService extends ChangeNotifier {
       'is_eliminated': false,
       'has_ready': false,
       'has_voted_current_round': false,
+      'role': 'friend',
     }).eq('room_id', room.id);
 
     await _supabase.from('rooms').update({
       'status': 'lobby',
       'current_round': 1,
+      'secret_word': null,
+      'secret_hint': null,
+      'secret_category': null,
+      'secret_image_url': null,
       'caught_gaddar_id': null,
       'caught_gaddar_name': null,
       'last_chance_guess': null,
@@ -515,8 +546,28 @@ class SupabaseGameService extends ChangeNotifier {
     await _clearSession();
     if (room != null && me != null) {
       try {
-        await _supabase.from('players').delete().eq('id', me.id);
-      } catch (_) {}
+        await _supabase.rpc('leave_room', params: {
+          'p_room_id': room.id,
+          'p_player_id': me.id,
+        });
+      } catch (_) {
+        // Fallback if RPC is not yet executed in database
+        try {
+          await _supabase.from('players').delete().eq('id', me.id);
+          final remaining = await _supabase
+              .from('players')
+              .select('id')
+              .eq('room_id', room.id)
+              .order('joined_at', ascending: true);
+          if (remaining.isEmpty) {
+            await _supabase.from('rooms').delete().eq('id', room.id);
+          } else if (me.isHost) {
+            final nextHostId = remaining.first['id'] as String;
+            await _supabase.from('players').update({'is_host': true}).eq('id', nextHostId);
+            await _supabase.from('rooms').update({'host_player_id': nextHostId}).eq('id', room.id);
+          }
+        } catch (_) {}
+      }
     }
     _currentRoom = null;
     _currentPlayerId = null;
@@ -524,6 +575,32 @@ class SupabaseGameService extends ChangeNotifier {
     _customWords = [];
     _currentRoundVotes = {};
     notifyListeners();
+  }
+
+  Future<void> forceAdvancePhase(RoomStatus targetPhase) async {
+    final room = _currentRoom;
+    if (room == null || myPlayer?.isHost != true) return;
+    try {
+      await _supabase.rpc('force_advance_phase', params: {
+        'p_room_id': room.id,
+        'p_target_status': targetPhase.toDbString(),
+      });
+    } catch (_) {
+      // Fallback
+      await _supabase.from('players').update({'has_ready': true}).eq('room_id', room.id);
+      await markReadyForPhase(targetPhase);
+    }
+  }
+
+  Future<void> forceResolveVoting() async {
+    final room = _currentRoom;
+    if (room == null || myPlayer?.isHost != true) return;
+    try {
+      await _supabase.rpc('force_resolve_round_votes', params: {
+        'p_room_id': room.id,
+        'p_round': room.currentRound,
+      });
+    } catch (_) {}
   }
 
   Future<void> _saveSession(String roomId, String roomCode) async {
@@ -573,6 +650,13 @@ class SupabaseGameService extends ChangeNotifier {
         return false;
       }
 
+      final playersRows = await _supabase
+          .from('players')
+          .select()
+          .eq('room_id', room.id)
+          .order('joined_at', ascending: true);
+
+      _players = playersRows.map(Player.fromMap).toList();
       _currentPlayerId = playerRow['id'] as String;
       _currentRoom = room;
       _subscribeToRoomStreams(room.id);

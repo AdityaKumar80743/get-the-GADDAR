@@ -74,6 +74,7 @@ class RoundResultScreen extends StatelessWidget {
                 activePlayers: activePlayers,
                 myPlayer: me,
                 onPressReady: () => service.markReadyForPhase(RoomStatus.discussion),
+                onForceAdvance: () => service.forceAdvancePhase(RoomStatus.discussion),
               ),
             ],
           ),

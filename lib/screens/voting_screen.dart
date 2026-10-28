@@ -18,6 +18,7 @@ class _VotingScreenState extends State<VotingScreen> {
   Widget build(BuildContext context) {
     final service = context.watch<SupabaseGameService>();
     final me = service.myPlayer;
+    final isEliminated = me?.isEliminated ?? false;
     final activePlayers = service.activePlayers;
     final myConfirmedVote = service.myVotedSuspectId;
     final votesCast = service.votesCastCount;
@@ -76,7 +77,7 @@ class _VotingScreenState extends State<VotingScreen> {
                     final suspect = activePlayers[index];
                     final isSelected = (myConfirmedVote ?? _selectedSuspectId) == suspect.id;
                     return GestureDetector(
-                      onTap: myConfirmedVote != null
+                      onTap: (myConfirmedVote != null || isEliminated)
                           ? null
                           : () => setState(() => _selectedSuspectId = suspect.id),
                       child: AnimatedContainer(
@@ -113,7 +114,9 @@ class _VotingScreenState extends State<VotingScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              isSelected ? '🎯 SUSPECT SELECTED' : 'Tap to Suspect',
+                              isEliminated
+                                  ? 'Active Suspect'
+                                  : (isSelected ? '🎯 SUSPECT SELECTED' : 'Tap to Suspect'),
                               style: TextStyle(
                                 color: isSelected ? GaddarColors.gold : Colors.white54,
                                 fontSize: 11,
@@ -129,19 +132,65 @@ class _VotingScreenState extends State<VotingScreen> {
               ),
               const SizedBox(height: 12),
 
-              CartoonButton(
-                label: myConfirmedVote != null
-                    ? '✓ VOTE LOCKED IN ($votesCast/$totalVoters VOTED)'
-                    : 'CAST ANONYMOUS VOTE',
-                icon: Icons.how_to_vote_rounded,
-                color: myConfirmedVote != null
-                    ? GaddarColors.emerald
-                    : GaddarColors.crimson,
-                textColor: myConfirmedVote != null ? GaddarColors.ink : Colors.white,
-                onPressed: (myConfirmedVote != null || _selectedSuspectId == null)
-                    ? null
-                    : () => service.castAnonymousVote(_selectedSuspectId!),
-              ),
+              if (isEliminated)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: GaddarColors.crimson.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: GaddarColors.crimson, width: 2.5),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('👻', style: TextStyle(fontSize: 22)),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          'SPECTATOR MODE: You are eliminated. Spectating remaining votes ($votesCast/$totalVoters)...',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                CartoonButton(
+                  label: myConfirmedVote != null
+                      ? '✓ VOTE LOCKED IN ($votesCast/$totalVoters VOTED)'
+                      : 'CAST ANONYMOUS VOTE',
+                  icon: Icons.how_to_vote_rounded,
+                  color: myConfirmedVote != null
+                      ? GaddarColors.emerald
+                      : GaddarColors.crimson,
+                  textColor: myConfirmedVote != null ? GaddarColors.ink : Colors.white,
+                  onPressed: (myConfirmedVote != null || _selectedSuspectId == null)
+                      ? null
+                      : () => service.castAnonymousVote(_selectedSuspectId!),
+                ),
+
+              if (me?.isHost == true && votesCast < totalVoters) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: service.forceResolveVoting,
+                    icon: const Icon(Icons.flash_on_rounded, color: GaddarColors.gold, size: 18),
+                    label: Text(
+                      '👑 Host: Force Resolve Votes ($votesCast/$totalVoters Voted)',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: GaddarColors.gold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

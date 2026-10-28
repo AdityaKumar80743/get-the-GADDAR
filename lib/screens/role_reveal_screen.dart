@@ -89,85 +89,88 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                 ),
                               ],
                             )
-                          : Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: isGaddar
-                                        ? GaddarColors.crimson
-                                        : GaddarColors.emerald,
-                                    borderRadius: BorderRadius.circular(99),
+                          : SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: isGaddar
+                                          ? GaddarColors.crimson
+                                          : GaddarColors.emerald,
+                                      borderRadius: BorderRadius.circular(99),
+                                    ),
+                                    child: Text(
+                                      isGaddar
+                                          ? '🕵️ YOU ARE THE GADDAR (IMPOSTOR)!'
+                                          : '🛡️ YOU ARE A LOYAL FRIEND',
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: isGaddar ? Colors.white : GaddarColors.ink,
+                                      ),
+                                    ),
                                   ),
-                                  child: Text(
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    isGaddar ? 'YOUR SECRET HINT:' : 'THE SECRET WORD IS:',
+                                    style: GoogleFonts.spaceGrotesk(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
                                     isGaddar
-                                        ? '🕵️ YOU ARE THE GADDAR (IMPOSTOR)!'
-                                        : '🛡️ YOU ARE A LOYAL FRIEND',
+                                        ? (room.impostorGetsHint
+                                            ? '💡 ${room.secretHint ?? "Blend In!"}'
+                                            : '🚫 BLIND BLUFF MODE (NO HINT)')
+                                        : (room.secretWord ?? ''),
+                                    textAlign: TextAlign.center,
                                     style: GoogleFonts.fredoka(
-                                      fontSize: 15,
+                                      fontSize: 30,
                                       fontWeight: FontWeight.w700,
-                                      color: isGaddar ? Colors.white : GaddarColors.ink,
+                                      color: GaddarColors.gold,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  isGaddar ? 'YOUR SECRET HINT:' : 'THE SECRET WORD IS:',
-                                  style: GoogleFonts.spaceGrotesk(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  isGaddar
-                                      ? (room.impostorGetsHint
-                                          ? '💡 ${room.secretHint ?? "Blend In!"}'
-                                          : '🚫 BLIND BLUFF MODE (NO HINT)')
-                                      : (room.secretWord ?? ''),
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    color: GaddarColors.gold,
-                                  ),
-                                ),
-                                if (!isGaddar && room.secretImageUrl != null && room.secretImageUrl!.isNotEmpty) ...[
+                                  if (!isGaddar && room.secretImageUrl != null && room.secretImageUrl!.isNotEmpty) ...[
+                                    const SizedBox(height: 10),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Container(
+                                        height: 120,
+                                        width: 180,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black26,
+                                          border: Border.all(color: GaddarColors.ink, width: 2.5),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Image.network(
+                                          room.secretImageUrl!,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (ctx, child, progress) {
+                                            if (progress == null) return child;
+                                            return const Center(child: CircularProgressIndicator(color: GaddarColors.gold, strokeWidth: 2));
+                                          },
+                                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                   const SizedBox(height: 12),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      height: 130,
-                                      width: 190,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black26,
-                                        border: Border.all(color: GaddarColors.ink, width: 2.5),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Image.network(
-                                        room.secretImageUrl!,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder: (ctx, child, progress) {
-                                          if (progress == null) return child;
-                                          return const Center(child: CircularProgressIndicator(color: GaddarColors.gold, strokeWidth: 2));
-                                        },
-                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                                      ),
-                                    ),
+                                  Text(
+                                    isGaddar
+                                        ? "Listen to your friends' spoken clues in real life, say a believable word, and survive > ${room.gaddarSurvivalThreshold(service.players.length)} rounds!"
+                                        : 'Speak a subtle related clue out loud in real life without giving the exact Secret Word away to the Gaddar!',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 13),
                                   ),
                                 ],
-                                const SizedBox(height: 14),
-                                Text(
-                                  isGaddar
-                                      ? "Listen to your friends' spoken clues in real life, say a believable word, and survive > ${room.gaddarSurvivalThreshold(service.players.length)} rounds!"
-                                      : 'Speak a subtle related clue out loud in real life without giving the exact Secret Word away to the Gaddar!',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                ),
-                              ],
+                              ),
                             ),
                     ),
                   ),
@@ -180,6 +183,7 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                 activePlayers: service.activePlayers,
                 myPlayer: me,
                 onPressReady: () => service.markReadyForPhase(RoomStatus.discussion),
+                onForceAdvance: () => service.forceAdvancePhase(RoomStatus.discussion),
               ),
             ],
           ),

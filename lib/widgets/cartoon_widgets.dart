@@ -140,6 +140,7 @@ class ReadyBarrierBanner extends StatelessWidget {
   final List<Player> activePlayers;
   final Player? myPlayer;
   final VoidCallback onPressReady;
+  final VoidCallback? onForceAdvance;
 
   const ReadyBarrierBanner({
     super.key,
@@ -147,6 +148,7 @@ class ReadyBarrierBanner extends StatelessWidget {
     required this.activePlayers,
     required this.myPlayer,
     required this.onPressReady,
+    this.onForceAdvance,
   });
 
   @override
@@ -154,6 +156,7 @@ class ReadyBarrierBanner extends StatelessWidget {
     final readyCount = activePlayers.where((p) => p.hasReady).length;
     final total = activePlayers.length;
     final iAmReady = myPlayer?.hasReady ?? false;
+    final isEliminated = myPlayer?.isEliminated ?? false;
     final waitingNames = activePlayers
         .where((p) => !p.hasReady)
         .map((p) => p.nickname)
@@ -215,14 +218,55 @@ class ReadyBarrierBanner extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
-          CartoonButton(
-            label: iAmReady
-                ? '✓ Waiting for Everyone Else ($readyCount/$total)...'
-                : '$actionLabel ($readyCount/$total)',
-            icon: iAmReady ? Icons.hourglass_top_rounded : Icons.check_circle_rounded,
-            color: iAmReady ? GaddarColors.emerald : GaddarColors.gold,
-            onPressed: iAmReady ? null : onPressReady,
-          ),
+          if (isEliminated)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: GaddarColors.crimson.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: GaddarColors.crimson, width: 2),
+              ),
+              child: Row(
+                children: [
+                  const Text('👻', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'SPECTATOR MODE: You were caught/eliminated! Spectating while friends continue...',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            CartoonButton(
+              label: iAmReady
+                  ? '✓ Waiting for Everyone Else ($readyCount/$total)...'
+                  : '$actionLabel ($readyCount/$total)',
+              icon: iAmReady ? Icons.hourglass_top_rounded : Icons.check_circle_rounded,
+              color: iAmReady ? GaddarColors.emerald : GaddarColors.gold,
+              onPressed: iAmReady ? null : onPressReady,
+            ),
+          if (myPlayer?.isHost == true && onForceAdvance != null && readyCount < total) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onForceAdvance,
+              icon: const Icon(Icons.fast_forward_rounded, color: GaddarColors.gold, size: 18),
+              label: Text(
+                '👑 Host: Force Advance Phase (Skip AFK)',
+                style: GoogleFonts.spaceGrotesk(
+                  color: GaddarColors.gold,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
