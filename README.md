@@ -31,14 +31,25 @@ The project is pre-configured with your Supabase credentials in `lib/main.dart`:
 - **Project URL**: `https://hrkdyopytppbcntgwayo.supabase.co`
 - **Anon Public Key**: Configured as default in `lib/main.dart`
 
-### ⚠️ Required Step for Database Setup:
-To enable room creation and real-time multiplayer synchronization, execute the SQL schema once in your Supabase project:
+### ⚠️ Required Steps for Database Setup:
+To enable room creation, real-time multiplayer synchronization, dynamic words, and images:
 1. Open your [Supabase Dashboard](https://supabase.com/dashboard/project/hrkdyopytppbcntgwayo).
-2. Go to **SQL Editor** (icon with `>_` on the left sidebar).
-3. Click **New Query**.
-4. Copy and paste the entire contents of [`supabase/migrations/20261026000000_get_the_gaddar_schema.sql`](supabase/migrations/20261026000000_get_the_gaddar_schema.sql).
-5. Click **Run**.
-   - This creates the `rooms`, `players`, `custom_words`, and `votes` tables with Row Level Security (RLS), adds them to `supabase_realtime`, and installs the 8 atomic barrier RPC functions.
+2. Go to **SQL Editor** (icon with `>_` on the left sidebar) $\rightarrow$ **New Query**.
+3. Run [`supabase/migrations/20261026000000_get_the_gaddar_schema.sql`](supabase/migrations/20261026000000_get_the_gaddar_schema.sql) (Core Game Schema & Multi-Phone Barrier RPCs).
+4. Run [`supabase/migrations/20261028000000_global_words_and_images.sql`](supabase/migrations/20261028000000_global_words_and_images.sql) (`global_words` table with multiple hints per word, image URLs, and pre-seeded content).
+
+---
+
+## 🛠️ Local Word Vault Manager (`admin.html`)
+
+You can add, edit, or delete words, multiple hints, and image URLs **locally without rebuilding the APK**:
+1. Simply double-click [`admin.html`](admin.html) to open it in your browser (Chrome, Edge, Firefox, Brave, etc.).
+2. Features:
+   - Add words under standard or custom categories.
+   - Attach **multiple hints** (in each game, the Gaddar gets one randomly chosen hint!).
+   - Add an optional **Image URL** with live image preview.
+   - Search, filter, and delete words with 1-click Supabase live synchronization.
+   - Works 100% locally from your computer — no hosting required!
 
 ---
 

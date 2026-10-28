@@ -1,13 +1,54 @@
+import 'dart:math';
+
 class WordPair {
   final String word;
-  final String hint;
+  final List<String> hints;
   final String category;
+  final String? imageUrl;
 
   const WordPair({
     required this.word,
-    required this.hint,
+    required this.hints,
     required this.category,
+    this.imageUrl,
   });
+
+  /// Single hint convenience getter for backward compatibility
+  String get hint => hints.isNotEmpty ? hints.first : '';
+
+  /// Picks a random hint from the word's hint pool
+  String pickRandomHint(Random random) {
+    if (hints.isEmpty) return '';
+    return hints[random.nextInt(hints.length)];
+  }
+
+  factory WordPair.fromMap(Map<String, dynamic> map) {
+    List<String> parsedHints = [];
+    if (map['hints'] is List) {
+      parsedHints = (map['hints'] as List)
+          .map((e) => e.toString().trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    } else if (map['hint'] != null && map['hint'].toString().trim().isNotEmpty) {
+      parsedHints = [map['hint'].toString().trim()];
+    }
+
+    return WordPair(
+      word: map['word'] as String? ?? '',
+      hints: parsedHints,
+      category: map['category'] as String? ?? 'General',
+      imageUrl: map['image_url'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'word': word,
+      'hints': hints,
+      'category': category,
+      if (imageUrl != null && imageUrl!.isNotEmpty) 'image_url': imageUrl,
+    };
+  }
 }
 
 class GaddarWordPacks {

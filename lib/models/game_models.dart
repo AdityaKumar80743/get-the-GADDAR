@@ -82,6 +82,7 @@ class GameRoom {
   final String? secretWord;
   final String? secretHint;
   final String? secretCategory;
+  final String? secretImageUrl;
   final String? caughtGaddarId;
   final String? caughtGaddarName;
   final String? lastChanceGuess;
@@ -104,6 +105,7 @@ class GameRoom {
     this.secretWord,
     this.secretHint,
     this.secretCategory,
+    this.secretImageUrl,
     this.caughtGaddarId,
     this.caughtGaddarName,
     this.lastChanceGuess,
@@ -134,6 +136,7 @@ class GameRoom {
       secretWord: map['secret_word'] as String?,
       secretHint: map['secret_hint'] as String?,
       secretCategory: map['secret_category'] as String?,
+      secretImageUrl: map['secret_image_url'] as String?,
       caughtGaddarId: map['caught_gaddar_id'] as String?,
       caughtGaddarName: map['caught_gaddar_name'] as String?,
       lastChanceGuess: map['last_chance_guess'] as String?,

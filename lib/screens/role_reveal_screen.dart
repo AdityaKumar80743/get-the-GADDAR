@@ -135,6 +135,30 @@ class _RoleRevealScreenState extends State<RoleRevealScreen> {
                                     color: GaddarColors.gold,
                                   ),
                                 ),
+                                if (!isGaddar && room.secretImageUrl != null && room.secretImageUrl!.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      height: 130,
+                                      width: 190,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black26,
+                                        border: Border.all(color: GaddarColors.ink, width: 2.5),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Image.network(
+                                        room.secretImageUrl!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (ctx, child, progress) {
+                                          if (progress == null) return child;
+                                          return const Center(child: CircularProgressIndicator(color: GaddarColors.gold, strokeWidth: 2));
+                                        },
+                                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 14),
                                 Text(
                                   isGaddar

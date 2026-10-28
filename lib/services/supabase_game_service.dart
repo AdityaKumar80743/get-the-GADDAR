@@ -16,6 +16,7 @@ class SupabaseGameService extends ChangeNotifier {
   GameRoom? _currentRoom;
   List<Player> _players = [];
   List<CustomWordItem> _customWords = [];
+  List<WordPair> _remoteWords = [];
   Map<String, String> _currentRoundVotes = {};
   bool _isLoading = false;
   String? _errorMessage;
@@ -30,6 +31,7 @@ class SupabaseGameService extends ChangeNotifier {
   GameRoom? get currentRoom => _currentRoom;
   List<Player> get players => _players;
   List<CustomWordItem> get customWords => _customWords;
+  List<WordPair> get remoteWords => _remoteWords;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -69,6 +71,20 @@ class SupabaseGameService extends ChangeNotifier {
     }
     _deviceId = savedId;
     notifyListeners();
+    unawaited(loadGlobalWords());
+  }
+
+  Future<void> loadGlobalWords() async {
+    try {
+      final rows = await _supabase
+          .from('global_words')
+          .select()
+          .order('category', ascending: true);
+      _remoteWords = rows.map((r) => WordPair.fromMap(r)).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Global words load info: $e (using offline packs)');
+    }
   }
 
   void clearError() {
@@ -363,27 +379,44 @@ class SupabaseGameService extends ChangeNotifier {
     for (final cat in room.selectedCategories) {
       if (cat == 'Custom Words') {
         for (final cw in _customWords) {
-          pool.add(WordPair(word: cw.word, hint: cw.hint, category: 'Custom Words'));
+          pool.add(WordPair(
+            word: cw.word,
+            hints: [cw.hint],
+            category: 'Custom Words',
+          ));
         }
       } else {
-        final list = GaddarWordPacks.builtInPacks[cat] ?? const [];
-        for (final item in list) {
-          pool.add(WordPair(
-            word: item['word']!,
-            hint: item['hint']!,
-            category: cat,
-          ));
+        final matchingRemote = _remoteWords
+            .where((w) => w.category.trim().toLowerCase() == cat.trim().toLowerCase())
+            .toList();
+
+        if (matchingRemote.isNotEmpty) {
+          pool.addAll(matchingRemote);
+        } else {
+          final list = GaddarWordPacks.builtInPacks[cat] ?? const [];
+          for (final item in list) {
+            pool.add(WordPair(
+              word: item['word']!,
+              hints: [item['hint']!],
+              category: cat,
+            ));
+          }
         }
       }
     }
 
     if (pool.isEmpty) {
       for (final item in GaddarWordPacks.builtInPacks['Movies']!) {
-        pool.add(WordPair(word: item['word']!, hint: item['hint']!, category: 'Movies'));
+        pool.add(WordPair(
+          word: item['word']!,
+          hints: [item['hint']!],
+          category: 'Movies',
+        ));
       }
     }
 
     final chosen = pool[_random.nextInt(pool.length)];
+    final pickedHint = chosen.pickRandomHint(_random);
     final shuffledIds = _players.map((p) => p.id).toList()..shuffle(_random);
     final gaddarCount = min(room.impostorCount, max(1, _players.length - 2));
     final gaddarIds = shuffledIds.take(gaddarCount).toList();
@@ -392,9 +425,11 @@ class SupabaseGameService extends ChangeNotifier {
     await _supabase.rpc('start_match', params: {
       'p_room_id': room.id,
       'p_secret_word': chosen.word,
-      'p_secret_hint': chosen.hint,
+      'p_secret_hint': pickedHint,
       'p_secret_category': chosen.category,
       'p_gaddar_ids': gaddarIds,
+      if (chosen.imageUrl != null && chosen.imageUrl!.isNotEmpty)
+        'p_secret_image_url': chosen.imageUrl,
     });
     return true;
   }
@@ -563,6 +598,7 @@ class SupabaseGameService extends ChangeNotifier {
         }
 
         notifyListeners();
+        unawaited(loadGlobalWords());
       }
     } catch (e) {
       debugPrint('Refresh on resume error: $e');

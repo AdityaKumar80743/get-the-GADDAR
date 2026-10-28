@@ -44,6 +44,26 @@ class LeaderboardScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
+                    if (room.secretImageUrl != null && room.secretImageUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          height: 120,
+                          width: 170,
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: GaddarColors.ink, width: 2),
+                          ),
+                          child: Image.network(
+                            room.secretImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
