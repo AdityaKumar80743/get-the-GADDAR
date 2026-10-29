@@ -128,6 +128,65 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+
+              InkWell(
+                onTap: () => GaddarDialogs.showHowToPlayDialog(context),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: GaddarColors.bgCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: GaddarColors.gold, width: 2.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: GaddarColors.ink,
+                        offset: Offset(0, 3.5),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: GaddarColors.gold.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: GaddarColors.gold, width: 1.5),
+                        ),
+                        child: const Text('📖', style: TextStyle(fontSize: 18)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'HOW TO PLAY & RULES',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: GaddarColors.gold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              'New to the game? See 3 easy steps & scoring',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: GaddarColors.gold, size: 16),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 18),
 
               if (service.errorMessage != null) ...[

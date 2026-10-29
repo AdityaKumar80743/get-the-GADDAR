@@ -376,5 +376,41 @@ begin
 end;
 $$;
 
+grant execute on function public.kick_player_safely(uuid, uuid, uuid) to anon, authenticated, service_role;
+
+-- ============================================================================
+-- 5. AUTOMATED STALE ROOM CLEANUP
+-- ============================================================================
+-- Automatically purges abandoned lobbies (>6h), finished games (>2h),
+-- or any lingering rooms older than p_hours_old (default 24h).
+-- Cascading foreign keys safely remove attached players, votes, and custom words.
+create or replace function public.cleanup_stale_rooms(p_hours_old int default 24)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_deleted_count int := 0;
+begin
+  delete from public.rooms
+  where created_at < (now() - (p_hours_old || ' hours')::interval)
+     or (status = 'game_over' and created_at < (now() - interval '2 hours'))
+     or (status = 'lobby' and created_at < (now() - interval '6 hours'));
+
+  get diagnostics v_deleted_count = row_count;
+
+  return jsonb_build_object(
+    'success', true,
+    'deleted_rooms', v_deleted_count,
+    'cleaned_at', now()
+  );
+exception
+  when others then
+    return jsonb_build_object('success', false, 'error', SQLERRM);
+end;
+$$;
+
+grant execute on function public.cleanup_stale_rooms(int) to anon, authenticated, service_role;
+
 
 

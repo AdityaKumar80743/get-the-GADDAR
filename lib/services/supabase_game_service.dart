@@ -75,6 +75,15 @@ class SupabaseGameService extends ChangeNotifier {
     _savedRoomCode = prefs.getString('gaddar_active_room_code');
     notifyListeners();
     unawaited(loadGlobalWords());
+    unawaited(_cleanupStaleRoomsSilently());
+  }
+
+  Future<void> _cleanupStaleRoomsSilently() async {
+    try {
+      await _supabase.rpc('cleanup_stale_rooms', params: {'p_hours_old': 24});
+    } catch (e) {
+      debugPrint('Stale room cleanup notice: $e');
+    }
   }
 
   Future<void> loadGlobalWords() async {
@@ -172,6 +181,7 @@ class SupabaseGameService extends ChangeNotifier {
         )
       ];
       await _saveSession(roomId, roomCode);
+      unawaited(_cleanupStaleRoomsSilently());
       _subscribeToRoomStreams(roomId);
       _isLoading = false;
       notifyListeners();

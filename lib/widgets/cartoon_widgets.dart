@@ -469,6 +469,180 @@ class GaddarDialogs {
     );
     return result ?? false;
   }
+
+  static void showHowToPlayDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: GaddarColors.bgDeep,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        side: BorderSide(color: GaddarColors.gold, width: 3),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text('📖', style: TextStyle(fontSize: 24)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'HOW TO PLAY GADDAR',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: GaddarColors.gold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _buildHowToPlayStep(
+                      stepNum: '1',
+                      title: 'LOOK AT YOUR SECRET ROLE',
+                      emoji: '🕵️',
+                      color: GaddarColors.crimson,
+                      description:
+                          'Shield your phone! Press and hold the vault card to peek at your secret identity:\n'
+                          '• Friends get the exact Secret Word (e.g. "Biryani").\n'
+                          '• The Gaddar (Impostor) gets only a subtle clue (e.g. "Clay Pot Rice") or no hint at all!',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHowToPlayStep(
+                      stepNum: '2',
+                      title: 'SPEAK 1-WORD CLUES OUT LOUD',
+                      emoji: '🗣️',
+                      color: GaddarColors.cyan,
+                      description:
+                          'Go around the room in real life in the order shown on your phone. Each player speaks strictly ONE clue word out loud.\n'
+                          '• Friends: Say a clever clue that proves you know the word without giving it away to the Gaddar!\n'
+                          '• Gaddar: Listen carefully, fake confidence, and bluff a believable word to blend in!',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHowToPlayStep(
+                      stepNum: '3',
+                      title: 'DEBATE & VOTE ANONYMOUSLY',
+                      emoji: '🗳️',
+                      color: GaddarColors.gold,
+                      description:
+                          'Argue in real life about whose clue was suspicious. Then lock in your secret vote on your phone!\n'
+                          '• Gaddar survives required rounds: Gaddar wins the match!\n'
+                          '• Gaddar caught by majority vote: They get 1 Last-Chance guess at the Secret Word to steal the win (+150 pts)!',
+                    ),
+                    const SizedBox(height: 12),
+                    _buildHowToPlayStep(
+                      stepNum: '★',
+                      title: 'HIDDEN LEADERBOARD & MVP',
+                      emoji: '🏆',
+                      color: GaddarColors.emerald,
+                      description:
+                          '• +50 secret points for every round you correctly vote for the real Gaddar!\n'
+                          '• +100 bonus victory points for all winning team members.\n'
+                          '• Final roles and scores are revealed at the end of the match!',
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+              CartoonButton(
+                label: 'GOT IT — READY TO PLAY!',
+                icon: Icons.check_circle_rounded,
+                color: GaddarColors.emerald,
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildHowToPlayStep({
+    required String stepNum,
+    required String title,
+    required String emoji,
+    required Color color,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: GaddarColors.bgCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: color,
+                child: Text(
+                  stepNum,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: GaddarColors.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$emoji $title',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              color: Colors.white,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class HostControlsHeaderButton extends StatelessWidget {

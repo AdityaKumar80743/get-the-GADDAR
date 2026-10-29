@@ -1,11 +1,32 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/supabase_game_service.dart';
 import '../widgets/cartoon_widgets.dart';
 
-class LeaderboardScreen extends StatelessWidget {
+class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
+
+  @override
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  late final ConfettiController _confettiCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiCtrl = ConfettiController(duration: const Duration(seconds: 4));
+    _confettiCtrl.play();
+  }
+
+  @override
+  void dispose() {
+    _confettiCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +40,13 @@ class LeaderboardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: GaddarColors.bgDeep,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               CartoonCard(
                 color: friendsWon ? const Color(0xFF0A3D2E) : const Color(0xFF4F0B24),
                 borderColor: friendsWon ? GaddarColors.emerald : GaddarColors.crimson,
@@ -274,7 +297,28 @@ class LeaderboardScreen extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiCtrl,
+            blastDirectionality: BlastDirectionality.explosive,
+            shouldLoop: false,
+            colors: const [
+              GaddarColors.gold,
+              GaddarColors.emerald,
+              GaddarColors.crimson,
+              GaddarColors.cyan,
+              GaddarColors.violet,
+              Colors.white,
+            ],
+            emissionFrequency: 0.05,
+            numberOfParticles: 25,
+            gravity: 0.25,
+          ),
+        ),
+      ],
+    ),
+  ),
+);
   }
 }
